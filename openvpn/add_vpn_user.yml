@@ -1,0 +1,75 @@
+---
+- hosts: "{{ target }}" 
+  become: true
+  user: "{{ ansible_user }}"
+  become_method: sudo
+  become_user: root
+  vars:
+    username: "{{ new_user }}"
+    email: "{{ new_user_email }}"
+    admin_email: "{{ dummy_email }}"
+
+  tasks:
+    - name: change the username in the VPN config file
+      lineinfile:
+        path: /etc/openvpn/easy-rsa/vars
+        regexp: "^export KEY_EMAIL=*" 
+        line: "export KEY_EMAIL={{ dummy_email }}"
+ 
+    - name: create new client certificate
+      shell: source /etc/openvpn/easy-rsa/vars &&  /etc/openvpn/easy-rsa/build-key --batch "{{ username }}"
+      args:
+        chdir: /etc/openvpn/easy-rsa
+        creates: /etc/openvpn/easy-rsa/keys/{{ username }}.crt
+        executable: /bin/bash
+    
+    - name: change the name in the config file to a generic name
+      lineinfile:
+        path: /etc/openvpn/easy-rsa/vars
+        regexp: "^export KEY_EMAIL=*" 
+        line: "export KEY_EMAIL={{ admin_email }}"
+
+    - name: copy keys to scp accessible dir
+      copy: 
+        src: "{{ item }}"
+        dest: /home/{{ ansible_user }}
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: 0600
+        remote_src: True
+      with_items:
+        - /etc/openvpn/easy-rsa/keys/{{ username }}.crt
+        - /etc/openvpn/easy-rsa/keys/{{ username }}.key
+
+    - name: copy example ovpn file
+      copy: 
+        src: /home/{{ ansible_user }}/username.ovpn
+        dest: /home/{{ ansible_user }}/{{ username }}.ovpn 
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: 0600
+        remote_src: True
+
+    - name: set username in ovpn file
+      replace:
+        path: /home/{{ ansible_user }}/{{ username }}.ovpn
+        regexp: "username"
+        replace: "{{ username }}"
+
+    - name: zip the files 
+      archive:
+        path: 
+          - /home/{{ ansible_user }}/{{ username }}.crt
+          - /home/{{ ansible_user }}/{{ username }}.key
+          - /home/{{ ansible_user }}/{{ username }}.ovpn
+          - /home/{{ ansible_user }}/ca.crt
+        dest: /home/{{ ansible_user }}/{{ username }}.zip
+        format: zip
+      become: yes
+      become_user: "{{ ansible_user }}"
+
+    - name: copy remote file to local machine
+      fetch: 
+        src: "{{ username }}.zip" 
+        dest: /home/{{ ansible_user }}
+      

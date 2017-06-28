@@ -1,0 +1,38 @@
+---
+- name: create new SSL certificate
+  shell: openssl genrsa -out {{ fqdn }}.key 2048
+  args:
+    chdir: "{{ ssl_dir }}"
+    creates: "{{ ssl_dir }}{{ fqdn }}.key"
+
+- name: create the certificate signing request
+  shell: openssl req -new -nodes -subj "/C={{ country }}/ST={{ state }}/L={{ city }}/O={{ company_name }}/OU=automation/CN={{ fqdn }}" -key {{ fqdn }}.key -out {{ fqdn }}.csr
+  args:
+    chdir: "{{ ssl_dir }}"
+    creates: "{{ ssl_dir }}{{ fqdn }}.csr"
+
+- name: sign the keys
+  shell: openssl x509 -req -in {{ fqdn }}.csr -CA {{ ca_crt }} -CAkey {{ ca_key }} -CAcreateserial -out {{ fqdn }}.crt -days 500 -sha256
+  args:
+    chdir: "{{ ssl_dir }}"
+    creates: "{{ ssl_dir }}{{ fqdn }}.crt"
+    
+- name: copy keys to scp accessible dir
+  copy: 
+    src: "{{ item }}"
+    dest: /home/{{ ansible_user }}
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0600
+    remote_src: True
+  with_items:
+    - "{{ ssl_dir }}{{ fqdn }}.crt"
+    - "{{ ssl_dir }}{{ fqdn }}.key"
+
+- name: copy remote file to local machine
+  fetch: 
+    src: "{{ item }}"
+    dest: /home/{{ ansible_user }}
+  with_items:
+    - "{{ fqdn }}.crt" 
+    - "{{ fqdn }}.key"  

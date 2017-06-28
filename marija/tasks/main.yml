@@ -1,0 +1,41 @@
+---
+- name: add environment variables for Go in user bashrc
+  lineinfile:
+    path: ~/.bashrc
+    line: "{{ item }}"
+    state: present
+    insertafter: yes
+  with_items:
+    - "export GOPATH=~/go"
+    - "export GOROOT=/usr/local/go"
+    - "export PATH=$PATH:$GOROOT/bin:$GOPATH/bin"
+
+- name: install git for RedHat OSes
+  yum:
+    name: git
+    state: present
+  become: True
+  become_user: root
+  when: ansible_os_family == "RedHat" 
+
+- name: install git for Debian derived OSes
+  apt:
+    name: git
+    state: present
+  become: True
+  become_user: root
+  when: ansible_os_family == "Debian"
+
+- name: install Marija
+  shell: source ~/.bashrc && /usr/local/go/bin/go get github.com/dutchcoders/marija
+  args:
+    creates: ~/go/bin/marija
+ 
+- name: copy the sample config file for usage
+  copy:
+    src: ~/go/src/github.com/dutchcoders/marija/config.toml.sample
+    dest: ~/go/src/github.com/dutchcoders/marija/config.toml
+    remote_src: True
+
+- debug:
+    msg: "Start marija by simply typing 'marija --config $GOPATH/src/github.com/dutchcoders/marija/config.toml' on the commandline"

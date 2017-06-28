@@ -1,0 +1,31 @@
+---
+- name: check if Go is installed
+  command: go
+  register: go_present
+  ignore_errors: True
+
+- block:
+  - name: download Golang
+    get_url:
+      url: https://storage.googleapis.com/golang/go1.8rc3.linux-amd64.tar.gz
+      dest: /tmp/go.tar.gz
+
+  - name: untar Golang 
+    unarchive: 
+      src: /tmp/go.tar.gz
+      dest: /usr/local
+      remote_src: True
+
+  - name: add environment variables for Go in root bashrc
+    lineinfile: 
+      path: ~/.bashrc
+      line: "{{ item }}"
+      state: present
+      insertafter: yes 
+    with_items: 
+      - "export GOPATH=~/go"
+      - "export GOROOT=/usr/local/go"
+      - "export PATH=$PATH:$GOROOT/bin"
+  when: go_present | failed
+
+

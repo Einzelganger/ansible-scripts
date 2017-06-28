@@ -1,0 +1,8 @@
+- name: create and sign openSSL certificates 
+  hosts: {{ target }} 
+  become: true
+  become_method: sudo
+  become_user: root
+ 
+  roles:
+    - signed-ssl-crt 

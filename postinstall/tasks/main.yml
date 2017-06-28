@@ -1,0 +1,12 @@
+- include: update_issue.yml
+- include: add_epel_repo.yml
+- include: basic_packages.yml
+- include: add_admin.yml
+- include: firewall_config_ssh.yml
+- include: fix_timezone.yml
+- include: remove_default_user.yml
+
+- name: upgrade all packages
+  yum:
+    name: '*'
+    state: latest

@@ -1,0 +1,43 @@
+---
+- name: install dradis pentest doc framework
+  hosts: "{{ target }}"
+  user: "{{ ansible_user }}"
+  become: true
+  become_method: sudo
+  become_user: root
+
+  tasks:
+    - name: install docker repository
+      yum-repository:
+         name: docker-ce 
+         enabled: yes
+         baseurl: https://download.docker.com/linux/centos/docker-ce.repo
+         description: Docker Community Edition
+         state: present
+
+    - name: install docker
+      yum: 
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - yum-utils
+        - docker-ce
+
+    - name: update cache
+      command: yum makecache fast
+
+    - name: start docker
+      service:
+        name: docker
+        state: started
+
+    - name: download dradis
+      command: docker pull zuazo/dradis
+     
+    - name: create a directory for database data
+      file:
+        path: /opt/dbdata
+        state: directory
+
+    - name: run the dradis image
+      command: docker run --publish 3000:80 --volume "/opt/dbdata:/dbdata" zuazo/dradis 

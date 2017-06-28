@@ -1,0 +1,30 @@
+---
+- name: add an admin to server
+  user:
+    name: "{{ new_user }}" 
+    shell: /bin/bash
+    groups: wheel
+    append: yes
+    password: "{{ new_user_password }}"
+
+- name: add .ssh directory
+  file: 
+    path: /home/{{ new_user }}/.ssh 
+    state: directory
+    owner: "{{ new_user }}"
+    group: "{{ new_user }}"
+    mode: 0700
+
+- name: add ssh pubkey
+  authorized_key: 
+    user: "{{ new_user }}"
+    key:  "{{ lookup('file', '{{ ssh_pubkey_path }}') }}"
+    state: present
+
+- name: allow wheel to run commands 
+  lineinfile:
+    path: /etc/sudoers
+    regexp: '#\s*%wheel\s*ALL=\(ALL\)\s*ALL\s*$'
+    line: ' %wheel ALL=(ALL)       ALL' 
+
+

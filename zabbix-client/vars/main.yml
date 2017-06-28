@@ -1,0 +1,4 @@
+---
+zabbix_server_ip: "{{ server_ip }}"
+zabbix_client_name: "{{ client_name }}"
+

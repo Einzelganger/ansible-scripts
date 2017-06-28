@@ -1,0 +1,124 @@
+---
+- block:
+  - debug:
+      msg: "This older Zabbix client will be rather insecure, no Pre shared keys are allowed so your monitored data will be sent unencrypted!\n You can cancel this now if this is undesirable."
+   
+  - name: wait for the user to read the above
+    pause:
+      minutes: 1
+  when: ansible_distribution == "Amazon"
+
+
+- name: install zabbix repo
+  yum: 
+    state: present
+    name: http://repo.zabbix.com/zabbix/3.2/rhel/7/x86_64/zabbix-release-3.2-1.el7.noarch.rpm
+  when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS"
+
+- name: install zabbix packages
+  yum: 
+    name: "{{ item }}" 
+    state: present
+    enablerepo: epel
+  with_items:
+    - zabbix22-agent # zabbix-agent installs version 1.8 
+  when: ansible_distribution == "Amazon" 
+  
+- name: install zabbix packages
+  yum: 
+    name: "{{ item }}" 
+    state: present
+  with_items:
+    - zabbix-agent 
+  when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" 
+
+- name: create psk key
+  command: sh -c "openssl rand -hex 32 > /etc/zabbix/zabbix_agentd.psk"
+  args:
+    creates: /etc/zabbix/zabbix_agent.psk  
+
+- name: store psk key
+  command:  cat /etc/zabbix/zabbix_agentd.psk
+  register: psk_key
+ 
+- debug: 
+    msg: "The psk string to use {{ psk_key.stdout_lines }}"
+
+- name: add server ip address to config file
+  lineinfile:
+    path: /etc/zabbix/zabbix_agentd.conf
+    regexp: 'Server=127.0.0.1\s*$'
+    line: "Server={{ zabbix_server_ip }}"
+    state: present
+
+- block:
+  - name: add TLSConnection definition to config file
+    lineinfile:
+      path: /etc/zabbix/zabbix_agentd.conf
+      line: "TLSConnect=psk"
+      insertafter: "# TLSConnect="
+      state: present
+
+  - name: add TLSAccept variable to config file
+    lineinfile:
+      path: /etc/zabbix/zabbix_agentd.conf
+      line: "TLSAccept=psk"
+      insertafter: "# TLSAccept="
+      state: present
+    
+  - name: add TLSPSKidentity variable to config file
+    lineinfile:
+      path: /etc/zabbix/zabbix_agentd.conf
+      line: "TLSPSKIdentity={{ simple_hostname }}_psk"
+      insertafter: "# TLSPSKIdentity="
+      state: present
+
+  - name: add TLSPSKFile variable to config file
+    lineinfile:
+      path: /etc/zabbix/zabbix_agentd.conf
+      line: "TLSPSKFile=/etc/zabbix/zabbix_agentd.psk"
+      insertafter: "TLSPSKFile="
+      state: present
+
+  - name: let selinux allow zabbix agent to run
+    command: semanage permissive -a zabbix_t 
+    
+  - name: wait for selinux to do its job
+    pause:
+      minutes: 1
+
+  - name: open firewall for zabbix client
+    firewalld:
+      port: "{{ item }}"
+      permanent: true
+      state: enabled
+    with_items: 
+      - 10050/tcp
+      - 10050/udp
+  when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS"
+
+
+- block:
+  - name: open tcp port for zabbix client
+    iptables:
+      chain: INPUT
+      protocol: tcp
+      destination_port: 10050
+      jump: ACCEPT
+
+  - name: open udp port for zabbix client
+    iptables:
+      chain: INPUT
+      protocol: udp
+      destination_port: 10050
+      jump: ACCEPT
+  when: ansible_distribution == "Amazon"
+
+
+- name: start zabbix systemctl
+  service: 
+    name: zabbix-agent
+    state: started
+    enabled: yes
+
+#- include: add_zabbix_host.yml #fails

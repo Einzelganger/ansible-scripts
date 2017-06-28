@@ -1,0 +1,108 @@
+---
+- name: install zabbix repo
+  yum: 
+    state: present
+    name: http://repo.zabbix.com/zabbix/3.2/rhel/7/x86_64/zabbix-release-3.2-1.el7.noarch.rpm
+
+- name: install zabbix packages
+  yum: 
+    name: "{{ item }}" 
+    state: present
+  with_items:
+    - zabbix-server-mysql
+    - zabbix-web-mysql
+
+- name: remove previous zabbix database
+  mysql_db:
+    name: zabbix
+    state: absent
+
+- name: add zabbix database in mysql server
+  mysql_db:
+    name: zabbix
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_pw }}"
+    encoding: utf8
+    collation: utf8_bin
+  no_log: True
+
+- name: add zabbix user to mysql server
+  mysql_user:
+    name: zabbix
+    password: "{{ mysql_user_pw }}"
+    state: present
+    priv: "zabbix.*:ALL"  
+  no_log: True
+   
+- name: enable innodb_file_per_table in mysql server
+  lineinfile:
+    path: /etc/my.cnf
+    regexp: 'innodb_file_per_table=.*'
+    line: innodb_file_per_table=1
+    state: present
+
+- name: import zabbix schema
+  mysql_db:
+    state: import
+    name: zabbix
+    login_user: zabbix
+    login_password: "{{ mysql_user_pw }}"    
+    target: /usr/share/doc/zabbix-server-mysql-3.2.6/create.sql
+  #no_log: True 
+
+- name: set mysql password in zabbix config
+  lineinfile:
+    path: /etc/zabbix/zabbix_server.conf
+    regexp: '#\sDBPassword=\s*$'
+    line: DBPassword={{ mysql_user_pw }}
+    state: present
+
+- name: enable zabbix on boot
+  service:
+    name: zabbix-server
+    state: started
+    enabled: yes
+
+- name: set correct timezone in zabbix config
+  lineinfile:
+    path: /etc/httpd/conf.d/zabbix.conf
+    regexp: '# php_value date\.timezone Europe\/Riga\s*$'
+    line: "php_value date.timezone Europe/Amsterdam"
+    state: present
+
+- name: install requirements for selinux ansible module
+  yum: 
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - libselinux-python
+    - libsemanage-python
+
+- name: let selinux allow apache to connect to zabbix
+  command: setsebool httpd_can_connect_zabbix on
+
+- name: let selinux allow apache to connect to network mods
+  command: setsebool httpd_can_network_connect on
+
+- name: let selinux allow zabbix to run
+  command: semanage permissive -a zabbix_t
+
+- name: start webserver 
+  service: 
+    name: httpd
+    state: started
+
+- name: allow httpd through the firewall
+  firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    zone: public
+  with_items:
+    - 80/tcp
+    - 10051/tcp
+    - 10051/udp
+
+- include: create_swap.yml
+

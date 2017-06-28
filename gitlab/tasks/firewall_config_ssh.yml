@@ -1,0 +1,62 @@
+---
+- block:
+  - name: install firewalld
+    yum:
+      name: firewalld
+      state: latest
+
+  - name: start firewall
+    service: 
+      name: firewalld
+      state: started
+
+  - name: allow ssh port in firewall
+    firewalld:
+      service: ssh 
+      zone: public
+      permanent: true
+      state: enabled  
+
+  - name: reload firewall
+    service: 
+      name: firewalld
+      state: reloaded
+   
+  - name: autostart firewalld
+    command: systemctl enable firewalld
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+
+- block:
+  - name: install ufw firewall
+    yum: 
+      name: ufw
+      state: latest
+  
+  - name: start ufw
+    service:
+      name: ufw 
+      state: started  
+
+  - name: allow ssh
+    ufw:
+      rule: allow
+      port: 22
+      proto: tcp
+   
+  - name: enable brute-force protection on port 22
+    ufw:
+      rule: limit
+      port: ssh
+      proto: tcp
+  
+  - name: enable firewall with logging
+    ufw: 
+      state: enabled
+      logging: on
+
+  - name: reload firewall
+    ufw:
+      state: reloaded 
+ 
+  when: ansible_distribution == 'Amazon' 

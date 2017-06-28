@@ -1,0 +1,43 @@
+---
+- name: restart gitlabs
+  command: gitlab-ctl reconfigure
+
+- name: restart apache
+  service: 
+    name: httpd
+    state: restarted
+
+- name: reload apache
+  service: 
+    name: httpd
+    state: reloaded
+
+- name: restart nginx
+  service:
+    name: nginx
+    state: restarted
+
+- name: reload nginx
+  service:
+    name: nginx
+    state: reloaded 
+
+- name: restart postgresql
+  service:
+    name: postgresql
+    state: restarted
+
+- name: restart firewall
+  service:
+    name: firewalld
+    state: restarted
+
+- name: reload firewall
+  service:
+    name: firewalld
+    state: reloaded
+
+- name: start firewall
+  service:
+    name: firewalld 
+    state: started

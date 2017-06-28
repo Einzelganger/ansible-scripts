@@ -1,0 +1,9 @@
+---
+#- name: update the OS
+#  yum: name='*' state=latest update_cache=yes
+- name: check if wget is installed
+  yum: name=wget state=latest
+- name: check if vim is installed
+  yum: name=vim state=latest
+- name: check if screen is installed
+  yum: name=screen state=latest

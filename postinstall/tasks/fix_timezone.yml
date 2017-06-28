@@ -1,0 +1,12 @@
+---
+- name: remove old timezone link 
+  file: 
+    path: /etc/localtime    
+    state: absent
+
+- name: create Dutch timezone link
+  file:
+    src: "{{ default_timezone }}" 
+    dest: /etc/localtime
+    state: link 
+    mode: 0744

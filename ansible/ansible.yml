@@ -1,0 +1,34 @@
+---
+- name: install newest ansible version
+  hosts: "{{ target  }}"
+  user: "{{ ansible_user }}"
+  become: true
+  become_method: sudo
+  become_user: root
+
+  tasks: 
+    - name: install prerequisites
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - rpm-build  
+        - make 
+        - asciidoc 
+        - python-setuptools 
+        - python2-devel 
+        - python-sphinx
+
+    - name: download git repository
+      git: 
+        repo: https://github.com/ansible/ansible.git
+        dest: /opt
+        recursive: yes
+        bare: yes
+        update: yes
+                      
+    - name: build rpm file
+      command: make rpm chdir=/opt/ansible
+
+    - name: install new ansible rpm
+      shell: yum -y install /opt/ansible/rpm-build/ansible*.el7.centos.noarch.rpm

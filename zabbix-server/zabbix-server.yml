@@ -1,0 +1,11 @@
+---
+- name: install newest zabbix server with mysql
+  hosts: "{{ target }} "
+  user: "{{ ssh_user }}"
+  become: true
+  become_method: sudo
+  become_user: root
+
+  roles:
+    #- mysql-server-geerling 
+    - zabbix-server

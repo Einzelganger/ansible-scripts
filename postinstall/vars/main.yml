@@ -1,0 +1,6 @@
+---
+default_timezone: /usr/share/zoneinfo/Europe/Amsterdam
+# new_user: # name for the new user
+# new_user_password: # password hash for the new user
+# ssh_pubkey_path: # path to the ssh pubkey for future ssh access.
+# default_user: ec2-user

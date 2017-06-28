@@ -1,0 +1,83 @@
+---
+- name: ensure that the base has scripts to set correct permissions
+  copy:
+    src: "{{ item }}"
+    dest: /root/
+    mode: 0700
+  with_items:
+    - httpd-permission-checker.sh
+    - allow_nextcloud_update.sh
+
+- name: allow nextcloud update
+  command: /root/allow_nextcloud_update.sh
+
+- name: set maintenace mode on
+  command: php /var/www/nextcloud/occ maintenance:mode --on
+  become: true
+  become_user: apache
+
+- name: download the new Nextcloud zip file
+  get_url:
+    url: https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.zip       
+    dest: /tmp/nextcloud.zip
+
+- name: unpack the new Nextcloud zip file
+  unarchive:
+    src: /tmp/nextcloud.zip 
+    dest: /root/
+    remote_src: True
+  
+- name: stop Apache
+  service:
+    name: httpd
+    state: stopped
+
+- name: rename the current Nextcloud dir 
+  command: mv /var/www/nextcloud /root/nextcloud_old
+
+- name: move the new directory to the current location
+  command: mv /root/nextcloud /var/www/nextcloud
+
+- name: copy the old config file from the backup dir to the new install 
+  copy:
+    src: /root/nextcloud_old/config/config.php
+    dest: /var/www/nextcloud/config/config.php
+    remote_src: yes
+    owner: apache
+    group: apache
+    mode: 0640
+
+- name: copy the data directory from the backup dir to the new install
+  command: cp -Rp /root/nextcloud_old/data /var/www/nextcloud/
+ 
+- name: copy the third party apps directory from the backup dir to the new install
+  command: cp -Rp /root/nextcloud_old/apps /var/www/nextcloud/
+
+
+- name: start Apache webserver
+  service:
+    name: httpd
+    state: started
+
+- name: allow nextcloud update
+  command: /root/allow_nextcloud_update.sh
+
+- name: perform upgrade
+  command: php /var/www/nextcloud/occ upgrade
+  become: yes
+  become_user: apache
+
+- name: wait for the upgrade to be finished
+  wait_for:
+    timeout: 100
+
+- name: secure nextcloud base
+  command: /root/httpd-permission-checker.sh
+
+- name: disable maintenance mode
+  command: php /var/www/nextcloud/occ maintenance:mode --off
+  become: yes
+  become_user: apache
+
+- debug:
+    msg: "Please log in to the Nextcloud instance and re-enable the plugins"

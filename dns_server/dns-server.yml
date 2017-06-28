@@ -1,0 +1,10 @@
+---
+- name: install 
+  hosts: "{{ target }} "
+  user: "{{ ansible_user }}"
+  become: true
+  become_method: sudo
+  become_user: root
+
+  roles:
+    - dns_server

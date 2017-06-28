@@ -1,0 +1,65 @@
+---
+- name: install requirements
+  yum: 
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - curl
+    - postgresql
+    - openssl
+
+- include: firewall_config_webserver.yml
+
+- include: install_postfix.yml
+
+- name: copy gitlab repo installer script
+  template: 
+    src: script.rpm.sh 
+    dest: /home/{{ ansible_user }}/script.rpm.sh
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 701
+
+- name: install gitlab repo
+  command: /home/{{ ansible_user }}/script.rpm.sh
+
+- name: install gitlab package
+  command: yum install -y gitlab-ce creates=/bin/gitlab-ctl 
+
+- name: create gitlab directory
+  file:
+    path: /etc/gitlab
+    state: directory
+    mode: 744
+    owner: root
+
+- name: create ssl directory 
+  file:
+    path: /etc/gitlab/ssl
+    state: directory
+    mode: 700
+    owner: root
+
+- name: create keys and place in expected directory
+  command: openssl req -x509 -nodes -subj "/C={{ country }}/ST={{ state }}/L={{ city }}/O={{ company_name }}/OU=automation/CN={{ domain }}" -days 3650 -newkey rsa:2048 -keyout /etc/gitlab/ssl/{{ domain }}.key -out /etc/gitlab/ssl/{{ domain }}.crt 
+  args:
+    creates: /etc/gitlab/ssl/{{ domain }}.key
+
+- name: start firewall
+  service: 
+    name: firewalld
+    state: started
+
+- name: modify gitlab config
+  template:
+    src: gitlab.rb.j2
+    dest: /etc/gitlab/gitlab.rb
+    owner: root
+    mode: 0600
+   
+- name: reconfigure gitlabs
+  command: gitlab-ctl reconfigure
+ 
+- name: populate external postgresql database 
+  shell: echo "yes" | gitlab-rake gitlab:setup become=yes become_user=git
+

@@ -1,0 +1,6 @@
+---
+- name: block initial user
+  command: chage -E 0 "{{ default_user }}"
+  tags:
+    - remove_default_user
+

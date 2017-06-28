@@ -1,0 +1,81 @@
+---
+- name: install bind (dns server)
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - bind
+    - bind-utils
+
+- name: copy bind template to remote host
+  template:
+    src: named.conf.j2
+    dest: /etc/named.conf
+
+- name: copy forward lookup file to remote host
+  template:
+    src: "{{ forward_filename }}"
+    dest: "/var/named/{{ forward_filename }}"
+
+- name: copy reverse lookup file to remote host
+  template:
+    src: "{{ reverse_filename }}"
+    dest: "/var/named/{{ reverse_filename }}"
+
+- name: set permissions on named
+  file:
+    path: "{{ item }}"
+    owner: root
+    group: named
+  with_items: 
+    - /var/named
+    - /etc/named.conf
+
+- name: start the DNS server
+  service: 
+    name: named
+    state: started
+    enabled: yes
+
+- name: allow port 53/tcp through the firewall
+  firewalld:
+    port: 53/tcp
+    state: enabled
+    zone: public
+    permanent: true
+ 
+- name: allow port 53/udp through the firewall
+  firewalld:
+    port: 53/udp
+    state: enabled
+    zone: public
+    permanent: true
+
+- name: reload firewall
+  service:
+    name: firewalld
+    state: reloaded
+
+- name: create uuid for the network interface
+  command: uuidgen {{ master_nic_name }}
+  register: nic_uuid
+
+- name: store mac address variable for template
+  shell: /usr/sbin/ifconfig -a "{{ master_nic_name  }}" | /usr/bin/grep -Po 'ether \K[\w:]*' 
+  register: master_mac_address
+
+- name: copy ifconfig template for nic to remote machine
+  template:
+    src: ifundef.j2
+    dest: /etc/sysconfig/network-scripts/ifcfg-{{ master_nic_name }} 
+ 
+- name: add the dns master ip address to resolver
+  lineinfile:
+    path: /etc/resolv.conf
+    regexp: "nameserver" #\s*[\w.]* 
+    line: "nameserver {{ master_dns_ip }}"
+
+- name: restart the network
+  service:
+    name: network
+    state: restarted

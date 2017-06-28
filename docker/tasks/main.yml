@@ -1,0 +1,40 @@
+---
+- name: install yum-utils requirement
+  yum: 
+    name: yum-utils
+    state: present
+
+- name: add Docker repository
+  get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/
+    
+- name: upgrade all packages and update cache
+  yum:
+    name: '*'
+    state: latest
+    update_cache: yes
+
+- name: install Docker Community Edition and a SElinux prerequisite
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - docker-ce
+    - policycoreutils-python  
+    
+- name: A non-root user in the docker group should run docker
+  group:
+    name: docker
+    state: present
+
+- name: add the user to the group
+  user: 
+    name: "{{ ansible_user }}"
+    groups: docker
+
+- name: start docker
+  service:
+    name: docker 
+    state: started
+    enabled: yes

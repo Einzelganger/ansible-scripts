@@ -1,0 +1,11 @@
+---
+private_key_path: # private GPG key that was created in beforehand
+public_key_path: #public GPG key that was created in beforehand
+passphrase:  # totally secret password to encrypt your data with the GPG keys
+aws_access_key:  # yep, it's secret, but else it will fali
+aws_secret_access_key: # yep it's secret, but else it fail
+aws_region: # should match the Ec2 region, like eu-central-1
+bucketname: #unique bucket name, like com.mycompany
+backup_name: # unique backup name, like 'meeting-2017-04-07'
+gpg_8_chars_code: #when creating the GPG keys, you'll see a '2048R/eightchars' you'll need the 8 chars bit
+

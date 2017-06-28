@@ -1,0 +1,23 @@
+- name: Add repository if OS is RedHat
+  yum_repository:
+    name: epel
+    description: EPEL YUM repo
+    baseurl: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    gpgcheck: yes
+    gpgkey: https://getfedora.org/static/352C64E5.txt
+  when: ansible_distribution == 'RedHat'
+
+- name: import gpg key 
+  command: rpm --import https://getfedora.org/static/352C64E5.txt
+  when: ansible_distribution == "CentOS"
+
+- name: enable repository if OS is CentOS
+  yum:
+    name: epel-release
+    state: present    
+  when: ansible_distribution == "CentOS"
+
+- name: Enable EPEL repository if OS is Amazon Linux
+  command: yum-config-manager --enable epel
+  when: ansible_distribution == "Amazon"
+

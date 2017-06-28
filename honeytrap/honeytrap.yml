@@ -1,0 +1,98 @@
+---
+- name: install Honeytrap
+  hosts: "{{ target  }}"
+  user: "{{ ansible_user }}"
+  become: true
+  become_method: sudo
+  become_user: root
+
+  tasks:  
+  - name: install prerequisites libpcap-dev and lxc-dev
+    apt:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - libpcap-dev
+      - lxc-dev
+      - lxc1
+    when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
+
+  - name: install prerequisites libpcap-dev and lxc-dev
+    apt:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - libpcap-dev
+      - lxc-dev
+      - lxc
+    when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+  - name: download Golang
+    get_url:
+      url: https://storage.googleapis.com/golang/go1.8rc3.linux-amd64.tar.gz
+      dest: /tmp/go.tar.gz
+
+  - name: untar Golang 
+    unarchive: 
+      src: /tmp/go.tar.gz
+      dest: /usr/local
+      remote_src: True
+ 
+  - name: add environment variables for Go
+    lineinfile: 
+      path: ~/.bashrc
+      line: "{{ item }}"
+      state: present
+      insertafter: yes 
+    with_items: 
+      - export GOPATH=/opt/honeytrap
+      - export PATH=$PATH:/usr/local/go/bin
+
+  - name: install gcc, to compile Honeytrap 
+    apt:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - gcc
+      - pkg-config
+    when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
+  
+  - name: install gcc, to compile Honeytrap 
+    yum:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - gcc
+      - pkgconfig
+    when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+  - name: install Honeytrap
+    command: /usr/local/go/bin/go get github.com/honeytrap/honeytrap
+    args:
+      creates: /root/go/bin
+
+  - name: place Honeytrap in the opt folder # fails
+    command: mv /root/go /opt/honeytrap
+  
+  - name: copy the sample config file for usage
+    copy:
+      src: /opt/honeytrap/src/github.com/honeytrap/honeytrap/config.toml.sample
+      dest: /opt/honeytrap/config.toml
+      remote_src: True
+
+  - name: create LXC container
+    shell: /usr/bin/lxc-create -t download -n honeytrap -- --dist ubuntu --release xenial --arch amd64
+
+  - name: make chroot script for LXC containers executable
+    file:
+      path: /opt/honeytrap/src/github.com/honeytrap/honeytrap/contrib/container.sh
+      owner: root
+      group: root
+      mode: 0770
+
+  - name: execute the chroot script
+    shell: /opt/honeytrap/src/github.com/honeytrap/honeytrap/contrib/container.sh
+  
+  - debug:
+      msg: "start Honeytrap by running /opt/honeytrap/bin/honeytrap --config /opt/honeytrap/config.toml and test the honeypot by running ssh -p 8022 root@localhost" 
+

@@ -1,0 +1,11 @@
+
+- name: install gitlabs
+  hosts: "{{ target }}"
+  user: "{{ ansible_user }}"
+  become: true
+  become_method: sudo
+  become_user: root
+
+  roles:
+    - postgresql
+    - gitlabs

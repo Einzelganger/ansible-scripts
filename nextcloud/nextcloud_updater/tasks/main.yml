@@ -1,0 +1,23 @@
+---
+- name: ensure that the base has scripts to set correct permissions
+  copy:
+    src: "{{ item }}"
+    dest: /root/
+    mode: 0700
+  with_items:
+    - httpd-permission-checker.sh
+    - allow_nextcloud_update.sh
+
+- name: allow update of nextcloud base
+  command: /root/allow_nextcloud_update.sh
+
+- name: perform upgrade
+  shell: php /var/www/nextcloud/updater/updater.phar --no-interaction
+  become: yes
+  become_user: apache
+
+- name: secure nextcloud base
+  command: /root/httpd-permission-checker.sh
+
+- debug:
+    msg: "Please log in to the Nextcloud instance and re-enable the plugins"

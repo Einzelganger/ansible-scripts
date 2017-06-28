@@ -1,0 +1,11 @@
+
+- name: Install script that creates snapshots for all hosts with the backup = yes tag
+  hosts: tag_service_wiki
+  user: "{{ ansible_user }}" 
+  become: true
+  become_method: sudo
+  become_user: root
+
+  roles:
+    - ec2-snapshots
+

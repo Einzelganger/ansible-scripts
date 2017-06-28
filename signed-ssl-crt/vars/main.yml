@@ -1,0 +1,10 @@
+domainname: # example.local 
+fqdn: "{{ hostname }}.{{domainname}}"
+cert_path: # location of the root certificate and key
+ca_crt: "{{ cert_path }}ca.crt"
+ca_key: "{{ cert_path }}ca.key"
+ssl_dir: # in case a different target directory is desired 
+country: SE
+city: 
+state: 
+company_name: 

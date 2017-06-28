@@ -1,0 +1,12 @@
+---
+- name: replace issue.net with warning
+  copy:
+    src: issue.net
+    dest: /etc/issue.net
+  
+- name: reload ssh
+  service:
+    name: sshd
+    state: reloaded   
+
+

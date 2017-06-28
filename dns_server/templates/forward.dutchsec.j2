@@ -1,0 +1,16 @@
+$TTL 86400
+@   IN  SOA     {{ master_dns_fqdn }} {{ admin_email_address }} (
+        2031081401  ;Serial
+        3600        ;Refresh
+        1800        ;Retry
+        604800      ;Expire
+        86400       ;Minimum TTL
+)
+@       IN  NS          {{ master_dns_fqdn}}
+@       IN  NS          {{ secondary_dns_fqdn}}
+@       IN  A           {{ master_dns_ip }}
+@       IN  A           {{ secondary_dns_ip }}
+@       IN  A           {{ mail_ip }}
+{{ master_hostname  }}       IN  A   {{ master_dns_ip}}
+{{  secondary_hostname }}    IN  A   {{ secondary_dns_ip }}
+{{ mail_hostname }}          IN  A   {{ mail_ip }}

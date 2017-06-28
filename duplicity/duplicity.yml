@@ -1,0 +1,11 @@
+
+- name: Install duplicity backup client and create GPG key
+  hosts: "{{ target }}"
+  user: "{{ username }}" 
+  become: true
+  become_method: sudo
+  become_user: root
+
+  roles:
+    - duplicity
+

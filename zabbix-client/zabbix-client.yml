@@ -1,0 +1,10 @@
+---
+- name: install newest zabbix client
+  hosts: "{{ target }} "
+  user: "{{ ssh_user }}"
+  become: true
+  become_method: sudo
+  become_user: root
+
+  roles:
+    - zabbix-client

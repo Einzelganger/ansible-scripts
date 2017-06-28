@@ -1,0 +1,25 @@
+---
+- name: install firewall
+  yum:
+    name: firewalld
+    state: present
+
+- name: start firewall
+  service: 
+    name: firewalld
+    state: started
+
+- name: allow http and https ports in firewall
+  firewalld:
+    service: "{{ item }}" 
+    zone: public
+    permanent: true
+    state: enabled  
+  with_items:
+    - https
+    - http  
+
+- name: reload firewall
+  service: 
+    name: firewalld
+    state: reloaded 

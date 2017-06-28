@@ -1,0 +1,23 @@
+---
+- name: install gnupg package
+  yum: 
+    name: gnupg
+    state: present
+
+- name: copy gpg keys to remote server
+  copy:
+    src: "{{ item }}"
+    dest: /root/
+    owner: root
+    group: root 
+    mode: 0500
+  with_items:
+    - backup_private.key
+    - backup_public.key
+
+
+- name: import public gpg key
+  command: gpg2 --import /root/backup_public.key 
+           
+- name: import private gpg key
+  command: gpg2 --import /root/backup_private.key 

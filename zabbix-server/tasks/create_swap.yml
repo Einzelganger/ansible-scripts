@@ -1,0 +1,36 @@
+---
+- block: 
+  - name: create swap file
+    command: dd if=/dev/zero of=/swapfile bs=1024 count=65536 
+    args:
+      creates: /swapfile
+
+  - name: set permissions on swapfile
+    file: 
+      path: /swapfile
+      mode: 0600
+      owner: root
+
+  - name: set swap 
+    command: mkswap /swapfile 
+    
+
+  - name: enable swap 
+    command: swapon /swapfile
+
+  - name: add entry to fstab
+    mount:
+      src: /swapfile          
+      path: swap
+      fstype: swap
+      opts: defaults        
+      passno: 0  
+      dump: 0
+      state: present
+
+  - name: set swapiness
+    sysctl:
+      name: vm.swappiness
+      value: "30"
+ 
+  when: ansible_swaptotal_mb < 10

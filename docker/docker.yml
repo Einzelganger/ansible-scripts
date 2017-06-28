@@ -1,0 +1,9 @@
+---
+- name: install docker
+  hosts: "{{ target }} "
+  user: "{{ ansible_user }}"
+  become: true
+
+  roles:
+    - docker
+  

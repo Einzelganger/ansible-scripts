@@ -1,0 +1,43 @@
+---
+- name: install pip and python-virtualenv
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+   - python2-pip
+   - python-virtualenv
+ 
+- name: update pip
+  pip:
+    name: pip
+    state: latest
+
+- name: install AWS cli
+  pip:
+    name: awscli
+    state: present
+
+- name: configure AWS cli
+  shell: aws configure set {{ item.key }} {{ item.value }} --profile {{ aws_cli_profile }}
+  no_log: True
+  with_dict:
+    aws_access_key_id: "{{ aws_cli_access_key }}"
+    aws_secret_access_key: "{{ aws_cli_secret_key }}"
+    region: "{{ aws_cli_region }}"
+    format: "text" 
+
+- name: copy backup script to server
+  copy:
+    src: ec2-automate-backup.sh
+    dest: "{{ remote_dir }}"
+    mode: 0700
+    owner: "{{ remote_user }}"
+
+- name: install automated snapshot script
+  cron: 
+    name: "run snapshot script"
+    minute: 0 
+    hour: 0
+    weekday: 7 
+    job: '{{ remote_dir }}/ec2-automate-backup.sh -s tag -t "backup=yes" -k 8 > /var/log/ec2-automate-backup_`date +"%Y%m%d"`.log'
+

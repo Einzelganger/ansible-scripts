@@ -1,0 +1,11 @@
+---
+- name: install Golang
+  hosts: "{{ target }}"
+  remote_user: "{{ user }}"
+  become: true
+  become_method: sudo
+  become_user: root
+  
+  roles:
+    - golang
+

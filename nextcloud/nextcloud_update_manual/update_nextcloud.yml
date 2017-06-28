@@ -1,0 +1,9 @@
+---
+- hosts: "{{ target }}"
+  user: "{{ ansible_user }}"
+  become: true
+  become_method: sudo
+  become_user: root
+
+  roles:
+    - nextcloud_update_manual

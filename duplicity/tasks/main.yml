@@ -1,0 +1,58 @@
+---
+- name: install duplicity and deja-dup
+  yum:
+    name: "duplicity"
+    state: present
+  
+- name: copy duplicity template to server
+  copy:
+    src: backup.sh
+    dest: /root/backup.sh
+    mode: 500 
+    owner: root
+    group: root
+
+- include: gpg.yml
+
+# modify contents of backup.sh: add s3 backup directory name and/or define backup dirs other than /opt
+
+#- name: run duplicity
+#  command: /usr/bin/bash /root/backup.sh
+#
+- name: check if mariadb is running
+  shell: service mariadb status
+  register: mysql_active 
+  ignore_errors: true
+
+- name: check if postgresqldb is running
+  shell: service postgresql status
+  register: postgresql_active 
+  ignore_errors: true
+
+- name: create mySQL dump cron job, if mySQL is running
+  cron: 
+    name: "create mySQLdump" 
+    job: "/usr/bin/mysqldump -u root {{ mysql_password }} --all-databases > /opt/database.sql" 
+    minute: 0
+    hour: 1
+  when: mysql_active|succeeded
+
+- name: create postgreSQL dump cron job, if mySQL is running
+  cron: 
+    name: "create postgresqldump" 
+    job: "/bin/pg_dumpall -U postgres > /opt/database.sql" 
+    minute: 0
+    hour: 1
+  when: postgresql_active|succeeded
+
+- name: add crontab entry
+  cron: 
+    name: "backup with duplicity"
+    job: /root/backup.sh > /dev/null
+    minute: 0
+    hour: 4
+
+- debug:
+    msg: "Don't forget to trust the imported server GPG key on the client. View the ID with 'gpg2 --list'. The ID is the part after the '/'. Assign trust by entering 'gpg2 --edit-key <keyID> <enter> trust 5 y quit'. Test duplicity by running /root/backup.sh after specifying the '--include-dirs'." 
+
+ 
